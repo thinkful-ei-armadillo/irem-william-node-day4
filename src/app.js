@@ -3,7 +3,7 @@
 require('dotenv').config();
 const express = require('express');
 const morgan = require('morgan');
-const POKEDEX = require('./pokedex.json')
+const POKEDEX = require('./pokedex.json');
 const cors = require('cors');
 const helmet = require('helmet');
 const { NODE_ENV } = require('./config');
@@ -26,14 +26,14 @@ app.use((req,res,next)=> {
   next();
 });
 
-const validTypes = [`Bug`, `Dark`, `Dragon`, `Electric`, `Fairy`, `Fighting`, `Fire`, `Flying`, `Ghost`, `Grass`, `Ground`, `Ice`, `Normal`, `Poison`, `Psychich`, `Rock`, `Steel`, `Water`];
+const validTypes = ['Bug', 'Dark', 'Dragon', 'Electric', 'Fairy', 'Fighting', 'Fire', 'Flying', 'Ghost', 'Grass', 'Ground', 'Ice', 'Normal', 'Poison', 'Psychich', 'Rock', 'Steel', 'Water'];
 app.get('/pokemon', (req,res) => {
   const {name, type} = req.query;
   let results = POKEDEX.pokemon;
   
   if (name) {
     results = results.filter(pokemon => {
-      return pokemon.name.toLowerCase().includes(name.toLowerCase())
+      return pokemon.name.toLowerCase().includes(name.toLowerCase());
     });
   }
 
@@ -45,7 +45,7 @@ app.get('/pokemon', (req,res) => {
 
   }
   
-  res.send(results)
+  res.send(results);
 });
 
 app.get('/types', (req,res) => {
@@ -73,16 +73,39 @@ app.post('/pokemon', (req, res) => {
   newPokemon.id=parseInt(newId, 10);
   newPokemon.num=`${newId}`;
   POKEDEX.pokemon.push(newPokemon);
-  res.status(201).json(newPokemon);
+  res.status(201).location(`http://localhost:8000/pokemon/${newId}`).json(newPokemon);
 });
+
+app.get('/pokemon/:pokemonId', (req, res) => {
+  const pokemonId = parseInt(req.params.pokemonId);
+  console.log(pokemonId);
+  let pokemonObj = POKEDEX.pokemon.filter(poke => poke.id === pokemonId);
+  console.log(pokemonObj);
+  res.send(pokemonObj);
+});
+
+
+app.delete('/pokemon/:pokemonId', (req, res) => {
+  const { pokemonId } = req.params;
+  const index = pokemonId-1;
+  if (index < 0 || index > POKEDEX.pokemon.length) {
+    return res
+      .status(404)
+      .send('No such Pokemon exists');
+  }
+  POKEDEX.pokemon.splice(index,1);
+  res.send('Deleted!');
+});
+
+
 
 app.use(function errorHandler(error, req, res, next) {
   let response;
   if (NODE_ENV === 'production') {
-    response = {error: {message: 'server error'} }
+    response = {error: {message: 'server error'} };
   } else {
     console.error(error);
-    response = {message: error.message, error}
+    response = {message: error.message, error};
   }
   res.status(500).json(response);
 });
