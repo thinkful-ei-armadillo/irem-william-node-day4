@@ -12,11 +12,12 @@ const app = express();
 
 const morganOption = (NODE_ENV === 'production')
   ? 'tiny'
-  : 'common';
+  : 'dev';
 
 app.use(morgan(morganOption));
 app.use(helmet());
 app.use(cors());
+app.use(express.json());
 app.use((req,res,next)=> {
   const authToken = req.get('Authorization');
   if(!authToken || authToken.split(' ')[1] !== process.env.API_KEY){
@@ -26,7 +27,6 @@ app.use((req,res,next)=> {
 });
 
 const validTypes = [`Bug`, `Dark`, `Dragon`, `Electric`, `Fairy`, `Fighting`, `Fire`, `Flying`, `Ghost`, `Grass`, `Ground`, `Ice`, `Normal`, `Poison`, `Psychich`, `Rock`, `Steel`, `Water`];
-
 app.get('/pokemon', (req,res) => {
   const {name, type} = req.query;
   let results = POKEDEX.pokemon;
@@ -46,11 +46,35 @@ app.get('/pokemon', (req,res) => {
   }
   
   res.send(results)
-})
+});
 
 app.get('/types', (req,res) => {
   res.send(validTypes);
-})
+});
+
+app.post('/types', (req, res) => {
+  const { type } = req.body;
+  validTypes.push(type);
+  res.status(201).json({type});
+});
+
+app.post('/pokemon', (req, res) => {
+  const newPokemon = req.body;
+
+  if(!req.body.name){
+    return res.status(400).send('You need to provide name');
+  }
+  
+  if(!req.body.type || !req.body.type.includes(validTypes) ){
+    return res.status(400).send('You need to provide a valid type');
+  }
+
+  const newId = POKEDEX.pokemon.length+1;
+  newPokemon.id=parseInt(newId, 10);
+  newPokemon.num=`${newId}`;
+  POKEDEX.pokemon.push(newPokemon);
+  res.status(201).json(newPokemon);
+});
 
 app.use(function errorHandler(error, req, res, next) {
   let response;
@@ -61,6 +85,6 @@ app.use(function errorHandler(error, req, res, next) {
     response = {message: error.message, error}
   }
   res.status(500).json(response);
-})
+});
 
 module.exports = app;
